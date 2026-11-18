@@ -7,6 +7,26 @@ export const NEGOCIO = {
   whatsapp: '56942084242',
   whatsappVisible: '+56 9 4208 4242',
   correo: 'contacto@helioswebs.site',
+  dominio: 'helioswebs.site',
+}
+
+// Datos legales (SII). Completa estos campos: si quedan vacíos, no se muestran en la web.
+export const LEGAL = {
+  razonSocial: 'Servicios Helios SpA',
+  rut: '77.988.388-4',
+  giro: 'Actividades de programación informática',
+  domicilio: 'Eleuterio Ramírez 2116, piso 2, oficina 2, Centro',
+  comuna: 'Calama',
+  region: 'Región de Antofagasta',
+  // Fecha de la última actualización de términos y privacidad
+  actualizado: '18 de noviembre de 2026',
+}
+
+// Precios publicados en CLP con IVA incluido (19%).
+export const IVA = 0.19
+export const desgloseIVA = (total) => {
+  const neto = Math.round(total / (1 + IVA))
+  return { neto, iva: total - neto, total }
 }
 
 export const waLink = (mensaje) =>

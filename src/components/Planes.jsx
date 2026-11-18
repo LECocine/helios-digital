@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react'
-import { PLANES, clp, waLink } from '../data'
+import { PLANES, clp, waLink, desgloseIVA } from '../data'
 import { SectionHeading } from './SectionHeading'
 
 export default function Planes() {
@@ -8,11 +8,12 @@ export default function Planes() {
       <SectionHeading
         eyebrow="Planes"
         titulo="Precios claros, sin sorpresas"
-        bajada="Pago único. 50% de anticipo y 50% cuando tu proyecto está listo. Sin mensualidades de mantención."
+        bajada="Todos los precios están en pesos chilenos e incluyen IVA. Pago único: 50% de anticipo y 50% cuando tu proyecto está listo. Sin mensualidades."
       />
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {PLANES.map((p) => {
           const osc = p.destacado
+          const { neto, iva } = desgloseIVA(p.precio)
           return (
             <article
               key={p.id}
@@ -28,7 +29,12 @@ export default function Planes() {
               <h3 className={`text-lg font-semibold ${osc ? 'text-sol' : ''}`}>{p.nombre}</h3>
               <div>
                 <p className="font-display text-[40px] leading-none font-bold">{clp(p.precio)}</p>
-                <p className={`mt-2 text-sm ${osc ? 'text-humo' : 'text-cafe'}`}>CLP · {p.unidad}</p>
+                <p className={`mt-2 text-sm ${osc ? 'text-humo' : 'text-cafe'}`}>
+                  IVA incluido · {p.unidad}
+                </p>
+                <p className={`mt-1 text-xs ${osc ? 'text-humo' : 'text-cafe'}`}>
+                  Neto {clp(neto)} + IVA {clp(iva)}
+                </p>
               </div>
               <p className={osc ? 'text-[#D9C4AC]' : 'text-cafe'}>{p.descripcion}</p>
               <p className={`text-sm font-semibold ${osc ? 'text-sol' : 'text-terracota-osc'}`}>{p.nota}</p>
@@ -56,6 +62,14 @@ export default function Planes() {
           )
         })}
       </div>
+      <p className="text-sm text-cafe">
+        Emitimos factura electrónica. El detalle y precio final de tu proyecto quedan en la cotización escrita que te
+        enviamos antes de partir. Revisa los{' '}
+        <a href="/terminos" className="font-semibold underline underline-offset-2">
+          términos y condiciones
+        </a>
+        .
+      </p>
     </section>
   )
 }
