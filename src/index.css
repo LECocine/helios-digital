@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --color-arena: #F6EEE3;
+  --color-duna: #EADBC6;
+  --color-crema: #FFF9F1;
+  --color-borde: #E6D3BA;
+  --color-sol: #E8A33D;
+  --color-sol-claro: #F4D3A0;
+  --color-cobre: #C97C46;
+  --color-oxido: #9E4F2A;
+  --color-terracota: #B8492A;
+  --color-terracota-osc: #9E3D21;
+  --color-tierra: #2A1A12;
+  --color-noche: #241510;
+  --color-cafe: #5E4637;
+  --color-humo: #CDB59C;
+  --color-whatsapp: #1F7A4D;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-arena font-sans text-tierra antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-sol);
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
