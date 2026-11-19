@@ -26,3 +26,4 @@ dist-ssr
 # Claves locales de wrangler (no subir)
 .dev.vars
 .wrangler
+.preview

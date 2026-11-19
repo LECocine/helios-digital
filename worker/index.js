@@ -4,7 +4,8 @@
 //   POST /api/webhook-mp   aviso de Mercado Pago: confirma el pago, actualiza el pedido y envía correos
 //   GET  /api/pedido?id=   estado del pedido para la página de resultado (sin datos personales)
 // Todo lo demás lo sirve la web estática (dist/).
-import { NEGOCIO, calcularPedido, clp } from '../src/data.js'
+import { calcularPedido } from '../src/data.js'
+import { correoCliente, correoAdmin } from './correo.js'
 
 const MP_API = 'https://api.mercadopago.com'
 
@@ -134,9 +135,14 @@ async function webhookMP(request, url, env) {
   // Si Mercado Pago manda firma, se valida. De todas formas el pago se vuelve a consultar
   // a la API de Mercado Pago con nuestro token, así que un aviso falso no puede marcar nada como pagado.
   const firma = request.headers.get('x-signature')
+  console.log('Webhook MP recibido', JSON.stringify({ tipo, dataId, tieneFirma: !!firma, tieneSecreto: !!env.MP_WEBHOOK_SECRET }))
   if (firma && env.MP_WEBHOOK_SECRET) {
-    const valida = await firmaValida(firma, request.headers.get('x-request-id'), dataId, env.MP_WEBHOOK_SECRET)
-    if (!valida) return json({ error: 'Firma inválida' }, 401)
+    const r = await firmaValida(firma, request.headers.get('x-request-id'), dataId, env.MP_WEBHOOK_SECRET)
+    if (!r.ok) {
+      // Solo se registran los primeros 8 caracteres de cada firma, nunca la clave secreta
+      console.warn('Webhook MP: firma inválida', JSON.stringify(r))
+      return json({ error: 'Firma inválida' }, 401)
+    }
   }
 
   if (tipo === 'payment' && dataId) await procesarPago(String(dataId), env)
@@ -223,62 +229,22 @@ async function verPedido(url, env) {
 }
 
 // ---------- Correos (Resend) ----------
+// Las plantillas están en worker/correo.js
 async function enviarCorreos(p, env) {
   if (!env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY no configurada: no se envían correos')
     return true
   }
-  const filas = [
-    ['Pedido', p.id],
-    ['Plan', `${p.plan_nombre}${p.cantidad > 1 ? ` x${p.cantidad}` : ''}`],
-    ['Mantención anual', p.mantencion > 0 ? clp(p.mantencion) : 'No'],
-    ['Dominio', '$0'],
-    ['Modalidad', p.modalidad === 'anticipo' ? 'Anticipo 50%' : 'Pago total'],
-    ['Pagado hoy', clp(p.monto_hoy)],
-    ['Saldo contra entrega', clp(p.saldo)],
-    ['Total del proyecto', `${clp(p.total)} (IVA incluido)`],
-    ['N° de pago Mercado Pago', p.mp_payment_id],
-  ]
-  const tabla = filas
-    .map(
-      ([k, v]) =>
-        `<tr><td style="padding:6px 12px 6px 0;color:#5E4637">${esc(k)}</td><td style="padding:6px 0;font-weight:600">${esc(v)}</td></tr>`,
-    )
-    .join('')
-
-  const htmlCliente = `
-  <div style="font-family:Inter,Arial,sans-serif;color:#2A1A12;max-width:560px">
-    <h1 style="font-size:22px">¡Gracias, ${esc(p.nombre.split(' ')[0])}! Recibimos tu pago.</h1>
-    <p>Tu pedido en ${esc(NEGOCIO.marca)} quedó confirmado. Te escribiremos por WhatsApp para pedirte el material
-    (logo, textos, fotos y datos de contacto) y partir. El plazo de 48 a 72 horas hábiles corre desde que lo recibimos.</p>
-    <table style="border-collapse:collapse;font-size:15px">${tabla}</table>
-    ${p.saldo > 0 ? `<p>El saldo de ${esc(clp(p.saldo))} se paga cuando tu proyecto esté listo.</p>` : ''}
-    <p>¿Dudas? Responde este correo o escríbenos al WhatsApp ${esc(NEGOCIO.whatsappVisible)}.</p>
-    <p style="color:#5E4637;font-size:13px">${esc(NEGOCIO.razonSocial)} · ${esc(NEGOCIO.dominio)}</p>
-  </div>`
-
-  const htmlAdmin = `
-  <div style="font-family:Inter,Arial,sans-serif;color:#2A1A12">
-    <h1 style="font-size:20px">Nuevo pago: ${esc(p.plan_nombre)} · ${esc(clp(p.monto_hoy))}</h1>
-    <table style="border-collapse:collapse;font-size:15px">${tabla}
-      <tr><td style="padding:6px 12px 6px 0">Cliente</td><td>${esc(p.nombre)}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0">Correo</td><td>${esc(p.correo)}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0">Teléfono</td><td>${esc(p.telefono)}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0">Empresa</td><td>${esc(p.empresa || '-')}</td></tr>
-      <tr><td style="padding:6px 12px 6px 0">RUT</td><td>${esc(p.rut || '-')}</td></tr>
-    </table>
-  </div>`
-
-  const enviar = (to, subject, html, replyTo) =>
+  const enviar = (to, mail, replyTo) =>
     fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.RESEND_API_KEY}` },
-      body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, html, reply_to: replyTo }),
+      body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject: mail.asunto, html: mail.html, text: mail.text, reply_to: replyTo }),
     })
 
   const [r1, r2] = await Promise.all([
-    enviar(p.correo, `Pago confirmado · Pedido ${p.id} · ${NEGOCIO.marca}`, htmlCliente, env.EMAIL_ADMIN),
-    enviar(env.EMAIL_ADMIN, `Nuevo pago ${p.id}: ${p.plan_nombre} ${clp(p.monto_hoy)}`, htmlAdmin, p.correo),
+    enviar(p.correo, correoCliente(p), env.EMAIL_ADMIN),
+    enviar(env.EMAIL_ADMIN, correoAdmin(p), p.correo),
   ])
   if (!r1.ok) console.error('Resend (cliente)', r1.status, await r1.text())
   if (!r2.ok) console.error('Resend (admin)', r2.status, await r2.text())
@@ -293,7 +259,7 @@ async function firmaValida(xSignature, xRequestId, dataId, secret) {
       return [k, v.join('=')]
     }),
   )
-  if (!partes.ts || !partes.v1) return false
+  if (!partes.ts || !partes.v1) return { ok: false, motivo: 'x-signature sin ts o v1', xSignature }
   let manifest = ''
   if (dataId) manifest += `id:${/^[a-z0-9]+$/i.test(dataId) ? String(dataId).toLowerCase() : dataId};`
   if (xRequestId) manifest += `request-id:${xRequestId};`
@@ -304,7 +270,7 @@ async function firmaValida(xSignature, xRequestId, dataId, secret) {
   ])
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(manifest))
   const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
-  return hex === partes.v1
+  return { ok: hex === partes.v1, manifest, calculado: hex.slice(0, 8), recibido: String(partes.v1).slice(0, 8) }
 }
 
 function nuevoId() {
@@ -315,10 +281,6 @@ function nuevoId() {
 
 function limpiar(v, max) {
   return String(v ?? '').trim().slice(0, max)
-}
-
-function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch])
 }
 
 function json(data, status = 200) {

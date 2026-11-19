@@ -24,7 +24,7 @@
       "binding": "DB",
       "database_name": "helios-pedidos",
       // Reemplaza por el id que entrega: npx wrangler d1 create helios-pedidos
-      "database_id": "REEMPLAZAR_CON_ID_DE_D1"
+      "database_id": "35bf8f6b-a338-4576-baaf-aed124f8cc40"
     }
   ]
 }
