@@ -1,4 +1,4 @@
-// Servidor del checkout de Helios Digital (Cloudflare Worker).
+// Servidor del checkout de Helios (Cloudflare Worker).
 // Rutas:
 //   POST /api/checkout     crea el pedido en D1 y la preferencia de pago en Mercado Pago
 //   POST /api/webhook-mp   aviso de Mercado Pago: confirma el pago, actualiza el pedido y envía correos

@@ -17,7 +17,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-borde/70 bg-arena/90 backdrop-blur">
       <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-4 py-3 sm:px-6 md:py-4">
-        <a href="#inicio" aria-label="Helios Digital, ir al inicio" className="text-tierra no-underline">
+        <a href="#inicio" aria-label="Helios, ir al inicio" className="text-tierra no-underline">
           <Logo />
         </a>
 

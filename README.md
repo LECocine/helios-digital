@@ -1,4 +1,4 @@
-# Helios Digital · Landing page
+# Helios · Landing page
 
 Landing de Servicios Helios SpA, hecha con React + Vite + Tailwind CSS v4 + lucide-react.
 Los contactos van a WhatsApp con un mensaje prellenado. El checkout (`/checkout`) cobra con Mercado Pago a través de un
@@ -28,7 +28,7 @@ Edita `src/data.js`:
 ```bash
 git init
 git add .
-git commit -m "Landing Helios Digital"
+git commit -m "Landing Helios"
 git branch -M main
 git remote add origin https://github.com/TU_USUARIO/helios-digital.git
 git push -u origin main

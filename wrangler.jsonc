@@ -12,7 +12,7 @@
   },
   "vars": {
     "SITE_URL": "https://helioswebs.site",
-    "EMAIL_FROM": "Helios Digital <pagos@helioswebs.site>",
+    "EMAIL_FROM": "Helios <pagos@helioswebs.site>",
     "EMAIL_ADMIN": "contacto@helioswebs.site"
   },
   // Secretos (no van aquí, se cargan con `npx wrangler secret put NOMBRE`):

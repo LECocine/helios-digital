@@ -1,6 +1,6 @@
 // Datos del negocio: edita aquí número, correo y precios.
 export const NEGOCIO = {
-  marca: 'Helios Digital',
+  marca: 'Helios',
   razonSocial: 'Servicios Helios SpA',
   ciudad: 'Calama',
   // Número en formato internacional sin "+" ni espacios. Ej: 56912345678

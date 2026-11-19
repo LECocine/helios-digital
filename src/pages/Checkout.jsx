@@ -7,7 +7,7 @@ export function CheckoutHeader() {
   return (
     <header className="border-b border-borde bg-arena">
       <div className="mx-auto flex max-w-[1140px] items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <a href="/" aria-label="Helios Digital, volver al inicio" className="text-tierra">
+        <a href="/" aria-label="Helios, volver al inicio" className="text-tierra">
           <Logo />
         </a>
         <a href="/#planes" className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-terracota-osc hover:text-tierra">
@@ -39,7 +39,7 @@ export default function Checkout() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    document.title = 'Checkout · Helios Digital'
+    document.title = 'Checkout · Helios'
   }, [])
 
   const pedido = useMemo(

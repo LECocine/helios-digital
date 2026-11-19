@@ -32,7 +32,7 @@ export default function CheckoutResultado() {
   const [pedido, setPedido] = useState(null)
 
   useEffect(() => {
-    document.title = 'Resultado del pago · Helios Digital'
+    document.title = 'Resultado del pago · Helios'
     if (!pedidoId) return
     const params = new URLSearchParams({ id: pedidoId })
     if (paymentId && paymentId !== 'null') params.set('payment_id', paymentId)

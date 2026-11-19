@@ -5,7 +5,7 @@ import { LEGAL } from '../data'
 
 export default function LegalLayout({ titulo, children }) {
   useEffect(() => {
-    document.title = `${titulo} · Helios Digital`
+    document.title = `${titulo} · Helios`
     window.scrollTo(0, 0)
   }, [titulo])
 
@@ -13,7 +13,7 @@ export default function LegalLayout({ titulo, children }) {
     <>
       <header className="border-b border-borde bg-arena">
         <div className="mx-auto flex max-w-[860px] items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <a href="/" aria-label="Helios Digital, volver al inicio" className="text-tierra">
+          <a href="/" aria-label="Helios, volver al inicio" className="text-tierra">
             <Logo />
           </a>
           <a href="/" className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-terracota-osc hover:text-tierra">
