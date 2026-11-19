@@ -98,7 +98,8 @@ export function calcularPedido({ planId, cantidad = 1, mantencion = false, modal
   const subtotal = plan.precio * cant
   // La mantención anual solo aplica a sitios web (no a tarjetas sueltas)
   const mant = mantencion && !esTarjeta ? MANTENCION_ANUAL : 0
-  const esAnticipo = modalidad !== 'total'
+  // Las tarjetas (página personal + NFC) siempre se pagan completas; el 50% aplica a landing y corporativa
+  const esAnticipo = !esTarjeta && modalidad !== 'total'
   // El 50% aplica al proyecto; la mantención del primer año se paga completa
   const proyectoHoy = esAnticipo ? Math.round(subtotal / 2) : subtotal
   const total = subtotal + mant + DOMINIO

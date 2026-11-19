@@ -19,6 +19,7 @@
   //   MP_ACCESS_TOKEN   token de producción (o de prueba) de Mercado Pago
   //   MP_WEBHOOK_SECRET clave secreta de webhooks de Mercado Pago
   //   RESEND_API_KEY    API key de Resend para los correos
+  //   ADMIN_TOKEN       clave tuya para generar links de saldo (openssl rand -hex 24)
   "d1_databases": [
     {
       "binding": "DB",

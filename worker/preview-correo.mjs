@@ -1,6 +1,6 @@
 // Genera una vista previa de los correos en .preview/ (no envía nada). Uso: npm run preview:correo
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { correoCliente, correoAdmin } from './correo.js'
+import { correoCliente, correoAdmin, correoSaldoLink, correoSaldoPagado, correoAdminSaldo } from './correo.js'
 
 const base = {
   id: 'H-EJEMPLO1', plan_id: 'landing', plan_nombre: 'Landing Express', cantidad: 1, mantencion: 20000,
@@ -17,6 +17,9 @@ const casos = {
     modalidad: 'total', total: 490000, monto_hoy: 490000, saldo: 0, nombre: 'María Soto', rut: '', mp_payment_id: '189500000001',
   }),
   admin: correoAdmin(base),
+  'saldo-link': correoSaldoLink({ ...base, saldo_link: 'https://www.mercadopago.cl/checkout/v1/redirect?pref_id=EJEMPLO' }),
+  'saldo-pagado': correoSaldoPagado({ ...base, saldo_payment_id: '189500000777' }),
+  'saldo-admin': correoAdminSaldo({ ...base, saldo_payment_id: '189500000777' }),
 }
 mkdirSync('.preview', { recursive: true })
 for (const [nombre, c] of Object.entries(casos)) {

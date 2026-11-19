@@ -125,3 +125,33 @@ Crea `.dev.vars` (no se sube a git) con `MP_ACCESS_TOKEN=...`, `MP_WEBHOOK_SECRE
 npx wrangler d1 execute helios-pedidos --local --file=worker/schema.sql
 npm run build && npx wrangler dev
 ```
+
+## Cobrar el saldo (50% restante)
+
+Para landing y corporativa el cliente paga el 50% al comprar. Cuando el proyecto está listo, cobras el resto con un
+link de Mercado Pago atado al mismo pedido: al pagar, el pedido queda con `saldo_estado = pagado` y llegan los correos.
+(Las tarjetas se pagan completas, no tienen saldo.)
+
+### Una sola vez
+```bash
+# 1. Agrega las columnas del saldo a la base ya creada
+npx wrangler d1 execute helios-pedidos --remote --file=worker/migracion-saldo.sql
+
+# 2. Crea una clave tuya (no la compartas) y guárdala en Cloudflare
+openssl rand -hex 24
+npx wrangler secret put ADMIN_TOKEN        # pega esa clave
+# 3. Pega la MISMA clave en .dev.vars (archivo local que no se sube a git), en una línea nueva:
+#    ADMIN_TOKEN=la-clave-que-generaste
+npm run build && npx wrangler deploy
+```
+
+### Cada vez que termines un proyecto
+```bash
+npm run pedidos:saldo                  # lista pedidos pagados con saldo pendiente
+npm run saldo -- H-XXXXXXXX            # crea el link y se lo envía al cliente por correo
+npm run saldo -- H-XXXXXXXX --sin-correo   # solo muestra el link (para mandarlo por WhatsApp)
+npm run saldo -- H-XXXXXXXX --regenerar    # link nuevo si el anterior se perdió
+```
+Estados de `saldo_estado`: `ninguno` (aún sin link), `link_enviado`, `pagado`, `revisar` (monto distinto: mirar a mano),
+`reembolsado`. Si el cliente paga dos veces con el mismo link, el segundo pago no se registra y queda en los logs
+(`wrangler tail`) para devolverlo a mano desde el panel de Mercado Pago.

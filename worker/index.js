@@ -3,9 +3,10 @@
 //   POST /api/checkout     crea el pedido en D1 y la preferencia de pago en Mercado Pago
 //   POST /api/webhook-mp   aviso de Mercado Pago: confirma el pago, actualiza el pedido y envía correos
 //   GET  /api/pedido?id=   estado del pedido para la página de resultado (sin datos personales)
+//   POST /api/admin/saldo  (solo tú, con ADMIN_TOKEN) genera el link para cobrar el 50% restante y se lo envía al cliente
 // Todo lo demás lo sirve la web estática (dist/).
 import { calcularPedido } from '../src/data.js'
-import { correoCliente, correoAdmin } from './correo.js'
+import { correoCliente, correoAdmin, correoSaldoLink, correoSaldoPagado, correoAdminSaldo } from './correo.js'
 
 const MP_API = 'https://api.mercadopago.com'
 
@@ -16,6 +17,7 @@ export default {
       if (url.pathname === '/api/checkout' && request.method === 'POST') return await crearCheckout(request, env)
       if (url.pathname === '/api/webhook-mp' && request.method === 'POST') return await webhookMP(request, url, env)
       if (url.pathname === '/api/pedido' && request.method === 'GET') return await verPedido(url, env)
+      if (url.pathname === '/api/admin/saldo' && request.method === 'POST') return await generarSaldo(request, env)
       if (url.pathname.startsWith('/api/')) return json({ error: 'No encontrado' }, 404)
     } catch (err) {
       console.error('Error en', url.pathname, err)
@@ -109,7 +111,7 @@ async function crearCheckout(request, env) {
       },
       auto_return: 'approved',
       notification_url: `${site}/api/webhook-mp?source_news=webhooks`,
-      statement_descriptor: 'HELIOS DIGITAL',
+      statement_descriptor: 'HELIOS',
       metadata: { pedido_id: id },
     }),
   })
@@ -159,11 +161,15 @@ async function procesarPago(paymentId, env) {
     return null
   }
   const pago = await res.json()
-  const pedidoId = pago.external_reference
-  if (!pedidoId) return null
+  const ref = String(pago.external_reference ?? '')
+  if (!ref) return null
+  // El pago del saldo usa la referencia "<pedido>-saldo"; el pago inicial usa solo "<pedido>"
+  const esSaldo = ref.endsWith('-saldo')
+  const pedidoId = esSaldo ? ref.slice(0, -'-saldo'.length) : ref
 
   const pedido = await env.DB.prepare('SELECT * FROM pedidos WHERE id = ?1').bind(pedidoId).first()
   if (!pedido) return null
+  if (esSaldo) return await procesarPagoSaldo(pago, pedido, env)
 
   let estado = {
     approved: 'pagado',
@@ -209,7 +215,7 @@ async function procesarPago(paymentId, env) {
 
 // ---------- 3. Estado del pedido para la página de resultado ----------
 async function verPedido(url, env) {
-  const id = limpiar(url.searchParams.get('id'), 40)
+  const id = limpiar(url.searchParams.get('id'), 40).replace(/-saldo$/, '')
   if (!id) return json({ error: 'Falta el pedido' }, 400)
 
   // Si vuelve desde Mercado Pago con payment_id, sincronizamos por si el aviso aún no llega
@@ -220,7 +226,7 @@ async function verPedido(url, env) {
   }
 
   const p = await env.DB.prepare(
-    'SELECT id, estado, plan_nombre, cantidad, mantencion, modalidad, total, monto_hoy, saldo FROM pedidos WHERE id = ?1',
+    'SELECT id, estado, plan_nombre, cantidad, mantencion, modalidad, total, monto_hoy, saldo, saldo_estado FROM pedidos WHERE id = ?1',
   )
     .bind(id)
     .first()
@@ -228,27 +234,177 @@ async function verPedido(url, env) {
   return json(p)
 }
 
+// ---------- 4. Cobro del saldo (50% restante) ----------
+// Lo usas tú cuando el proyecto está listo:  npm run saldo -- H-XXXXXXXX
+// Crea un link de Mercado Pago por el saldo, atado al pedido original, y se lo envía al cliente por correo.
+async function generarSaldo(request, env) {
+  if (!env.ADMIN_TOKEN) return json({ error: 'No encontrado' }, 404)
+  if (!(await tokenValido(request.headers.get('authorization'), env.ADMIN_TOKEN))) {
+    return json({ error: 'No autorizado' }, 401)
+  }
+
+  const body = await request.json().catch(() => ({}))
+  const id = limpiar(body.pedido, 40)
+  const p = await env.DB.prepare('SELECT * FROM pedidos WHERE id = ?1').bind(id).first()
+  if (!p) return json({ error: 'Pedido no encontrado' }, 404)
+  if (p.estado !== 'pagado') return json({ error: `El pedido está "${p.estado}": el primer pago aún no está confirmado.` }, 409)
+  if (p.saldo <= 0) return json({ error: 'Este pedido no tiene saldo pendiente.' }, 409)
+  if (p.saldo_estado === 'pagado') return json({ error: 'El saldo de este pedido ya está pagado.' }, 409)
+
+  let link = p.saldo_link
+  const reutilizado = !!link && body.regenerar !== true
+  if (!reutilizado) {
+    const site = env.SITE_URL.replace(/\/+$/, '')
+    const res = await fetch(`${MP_API}/checkout/preferences`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
+        'X-Idempotency-Key': crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'saldo',
+            title: `Saldo ${p.plan_nombre} · Pedido ${p.id}`,
+            quantity: 1,
+            currency_id: 'CLP',
+            unit_price: p.saldo,
+          },
+        ],
+        payer: { name: p.nombre, email: p.correo },
+        external_reference: `${p.id}-saldo`,
+        back_urls: {
+          success: `${site}/checkout/resultado`,
+          pending: `${site}/checkout/resultado`,
+          failure: `${site}/checkout/resultado`,
+        },
+        auto_return: 'approved',
+        notification_url: `${site}/api/webhook-mp?source_news=webhooks`,
+        statement_descriptor: 'HELIOS',
+        metadata: { pedido_id: p.id, tipo: 'saldo' },
+      }),
+    })
+    const pref = await res.json()
+    if (!res.ok || !pref.init_point) {
+      console.error('Mercado Pago rechazó la preferencia del saldo', res.status, JSON.stringify(pref))
+      return json({ error: 'Mercado Pago no pudo crear el link del saldo.' }, 502)
+    }
+    link = pref.init_point
+    await env.DB.prepare(
+      `UPDATE pedidos SET saldo_link = ?1, saldo_preference_id = ?2, saldo_estado = 'link_enviado', actualizado = datetime('now') WHERE id = ?3`,
+    )
+      .bind(link, pref.id, p.id)
+      .run()
+  }
+
+  let correoEnviado = false
+  if (body.enviarCorreo !== false) correoEnviado = await enviarCorreoSaldoLink({ ...p, saldo_link: link }, env)
+  return json({ pedido: p.id, cliente: p.nombre, correo: p.correo, saldo: p.saldo, link, reutilizado, correoEnviado })
+}
+
+async function procesarPagoSaldo(pago, pedido, env) {
+  const pedidoId = pedido.id
+  let estado = null
+  if (pago.status === 'approved') estado = 'pagado'
+  else if (pago.status === 'refunded' || pago.status === 'charged_back') estado = 'reembolsado'
+  // Pendiente o rechazado: no cambia nada, el link sigue sirviendo para reintentar
+  if (estado === null) return { pedidoId, estado: pedido.saldo_estado, pago }
+
+  if (estado === 'pagado' && Math.round(Number(pago.transaction_amount)) !== pedido.saldo) {
+    console.error('Monto del saldo no coincide', pedidoId, pago.transaction_amount, pedido.saldo)
+    estado = 'revisar'
+  }
+
+  // Si el cliente paga dos veces con el mismo link, el segundo pago no pisa el primero (queda para devolverlo a mano)
+  if (pedido.saldo_estado === 'pagado' && estado !== 'reembolsado' && pedido.saldo_payment_id && pedido.saldo_payment_id !== String(pago.id)) {
+    console.error('Pago duplicado del saldo: devolver a mano', pedidoId, String(pago.id))
+    return { pedidoId, estado: 'pagado', pago }
+  }
+  // Un aviso atrasado no baja un saldo ya pagado
+  if (pedido.saldo_estado === 'pagado' && estado === 'revisar') estado = 'pagado'
+
+  await env.DB.prepare(
+    `UPDATE pedidos SET saldo_estado = ?1, saldo_payment_id = ?2,
+       saldo_pagado_en = COALESCE(saldo_pagado_en, CASE WHEN ?1 = 'pagado' THEN datetime('now') END),
+       actualizado = datetime('now') WHERE id = ?3`,
+  )
+    .bind(estado, String(pago.id), pedidoId)
+    .run()
+
+  if (estado === 'pagado') {
+    const marca = await env.DB.prepare('UPDATE pedidos SET saldo_correo_enviado = 1 WHERE id = ?1 AND saldo_correo_enviado = 0')
+      .bind(pedidoId)
+      .run()
+    if (marca.meta.changes === 1) {
+      const ok = await enviarCorreosSaldo({ ...pedido, saldo_estado: estado, saldo_payment_id: String(pago.id) }, env)
+      if (!ok) await env.DB.prepare('UPDATE pedidos SET saldo_correo_enviado = 0 WHERE id = ?1').bind(pedidoId).run()
+    }
+  }
+  return { pedidoId, estado, pago }
+}
+
+// Compara hashes (no el texto) para que el tiempo de respuesta no filtre el token
+async function tokenValido(cabecera, secreto) {
+  const dado = String(cabecera ?? '').replace(/^Bearer\s+/i, '')
+  const enc = new TextEncoder()
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(dado)),
+    crypto.subtle.digest('SHA-256', enc.encode(secreto)),
+  ])
+  const x = new Uint8Array(a)
+  const y = new Uint8Array(b)
+  let diff = 0
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i]
+  return diff === 0
+}
+
 // ---------- Correos (Resend) ----------
 // Las plantillas están en worker/correo.js
+function enviarMail(env, to, mail, replyTo) {
+  return fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.RESEND_API_KEY}` },
+    body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject: mail.asunto, html: mail.html, text: mail.text, reply_to: replyTo }),
+  })
+}
+
 async function enviarCorreos(p, env) {
   if (!env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY no configurada: no se envían correos')
     return true
   }
-  const enviar = (to, mail, replyTo) =>
-    fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.RESEND_API_KEY}` },
-      body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject: mail.asunto, html: mail.html, text: mail.text, reply_to: replyTo }),
-    })
-
   const [r1, r2] = await Promise.all([
-    enviar(p.correo, correoCliente(p), env.EMAIL_ADMIN),
-    enviar(env.EMAIL_ADMIN, correoAdmin(p), p.correo),
+    enviarMail(env, p.correo, correoCliente(p), env.EMAIL_ADMIN),
+    enviarMail(env, env.EMAIL_ADMIN, correoAdmin(p), p.correo),
   ])
   if (!r1.ok) console.error('Resend (cliente)', r1.status, await r1.text())
   if (!r2.ok) console.error('Resend (admin)', r2.status, await r2.text())
   return r1.ok
+}
+
+async function enviarCorreosSaldo(p, env) {
+  if (!env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY no configurada: no se envían correos')
+    return true
+  }
+  const [r1, r2] = await Promise.all([
+    enviarMail(env, p.correo, correoSaldoPagado(p), env.EMAIL_ADMIN),
+    enviarMail(env, env.EMAIL_ADMIN, correoAdminSaldo(p), p.correo),
+  ])
+  if (!r1.ok) console.error('Resend saldo (cliente)', r1.status, await r1.text())
+  if (!r2.ok) console.error('Resend saldo (admin)', r2.status, await r2.text())
+  return r1.ok
+}
+
+async function enviarCorreoSaldoLink(p, env) {
+  if (!env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY no configurada: no se envía el link del saldo')
+    return false
+  }
+  const r = await enviarMail(env, p.correo, correoSaldoLink(p), env.EMAIL_ADMIN)
+  if (!r.ok) console.error('Resend link saldo', r.status, await r.text())
+  return r.ok
 }
 
 // ---------- Utilidades ----------

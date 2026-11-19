@@ -54,8 +54,9 @@ export default function Terminos() {
       <section>
         <h2>4. Forma de pago</h2>
         <p>
-          Pagas el <strong>50% de anticipo</strong> para iniciar el proyecto y el <strong>50% restante contra entrega</strong>,
-          cuando el sitio está listo para publicarse o las tarjetas están listas para retirar. El pago es único: no hay
+          En landing pages y sitios corporativos pagas el <strong>50% de anticipo</strong> para iniciar el proyecto y el{' '}
+          <strong>50% restante contra entrega</strong>, cuando el sitio está listo para publicarse. Las tarjetas
+          ejecutivas NFC contratadas solas se pagan <strong>completas al comprar</strong>. El pago es único: no hay
           mensualidades de mantención.
         </p>
         <p>

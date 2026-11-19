@@ -61,7 +61,7 @@ export default function Checkout() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, cantidad, mantencion, modalidad, cliente, aceptaTerminos: acepta }),
+        body: JSON.stringify({ planId, cantidad, mantencion, modalidad: pedido.modalidad, cliente, aceptaTerminos: acepta }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || !data.url) throw new Error(data.error || 'No pudimos iniciar el pago.')
@@ -152,7 +152,14 @@ export default function Checkout() {
             <fieldset className={tarjetaPaso}>
               <legend className="sr-only">Forma de pago</legend>
               <p className={tituloPaso} aria-hidden="true">{esTarjeta ? 'Paso 2' : 'Paso 3'} · Forma de pago</p>
-              <label className={opcion(modalidad === 'anticipo')}>
+              {esTarjeta ? (
+                <div className="rounded-2xl border-2 border-terracota bg-arena p-4 sm:p-5">
+                  <p className="font-semibold">Pago total ahora</p>
+                  <p className="mt-1 text-[15px] text-cafe">Las tarjetas se pagan completas al comprar. No queda saldo pendiente.</p>
+                </div>
+              ) : (
+                <>
+                  <label className={opcion(modalidad === 'anticipo')}>
                 <input
                   type="radio"
                   name="modalidad"
@@ -175,6 +182,8 @@ export default function Checkout() {
                 />
                 <span className="font-semibold">Pagar el total ahora</span>
               </label>
+                </>
+              )}
             </fieldset>
 
             <fieldset className={tarjetaPaso}>

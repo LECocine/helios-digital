@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "preview:correo": "node worker/preview-correo.mjs"
+    "preview:correo": "node worker/preview-correo.mjs",
+    "saldo": "node worker/saldo.mjs",
+    "pedidos:saldo": "npx wrangler d1 execute helios-pedidos --remote --command \"SELECT id,nombre,plan_nombre,saldo,saldo_estado,creado FROM pedidos WHERE estado='pagado' AND saldo>0 AND saldo_estado!='pagado' ORDER BY creado\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",

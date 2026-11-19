@@ -8,7 +8,7 @@ export default function Planes() {
       <SectionHeading
         eyebrow="Planes"
         titulo="Precios claros, sin sorpresas"
-        bajada="Todos los precios están en pesos chilenos e incluyen IVA. Pago único: 50% de anticipo y 50% cuando tu proyecto está listo. Dominio $0 y mantención anual opcional de $20.000. Paga en línea con Mercado Pago."
+        bajada="Todos los precios están en pesos chilenos e incluyen IVA. Sitios web: 50% de anticipo y 50% cuando tu proyecto está listo. Tarjetas NFC: pago completo al comprar. Dominio $0 y mantención anual opcional de $20.000. Paga en línea con Mercado Pago."
       />
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {PLANES.map((p) => {

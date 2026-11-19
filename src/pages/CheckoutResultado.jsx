@@ -24,9 +24,26 @@ const TEXTOS = {
   },
 }
 
+// Mismo resultado, pero para el pago del saldo (50% restante)
+const TEXTOS_SALDO = {
+  ...TEXTOS,
+  pagado: {
+    ...TEXTOS.pagado,
+    titulo: '¡Saldo pagado!',
+    bajada: 'Te enviamos un correo con la confirmación. Te contactaremos por WhatsApp para coordinar la entrega.',
+  },
+  rechazado: {
+    ...TEXTOS.rechazado,
+    bajada: 'No se hizo ningún cargo. Abre de nuevo el link del correo para reintentar, o escríbenos por WhatsApp.',
+  },
+}
+
 export default function CheckoutResultado() {
   const q = new URLSearchParams(window.location.search)
-  const pedidoId = q.get('external_reference')
+  const ref = q.get('external_reference') || ''
+  // El pago del saldo vuelve con la referencia "<pedido>-saldo"
+  const esSaldo = ref.endsWith('-saldo')
+  const pedidoId = esSaldo ? ref.slice(0, -'-saldo'.length) : ref
   const paymentId = q.get('payment_id')
   const estadoMP = q.get('status') || q.get('collection_status')
   const [pedido, setPedido] = useState(null)
@@ -42,13 +59,14 @@ export default function CheckoutResultado() {
       .catch(() => {})
   }, [pedidoId, paymentId])
 
+  const estadoPedido = esSaldo ? pedido?.saldo_estado : pedido?.estado
   const estado =
-    pedido?.estado === 'pagado'
+    estadoPedido === 'pagado'
       ? 'pagado'
-      : pedido?.estado === 'rechazado' || estadoMP === 'rejected' || estadoMP === 'null'
+      : estadoPedido === 'rechazado' || estadoMP === 'rejected' || estadoMP === 'null'
         ? 'rechazado'
         : 'pendiente'
-  const { Icon, color, titulo, bajada } = TEXTOS[estado]
+  const { Icon, color, titulo, bajada } = (esSaldo ? TEXTOS_SALDO : TEXTOS)[estado]
 
   return (
     <>
@@ -64,12 +82,18 @@ export default function CheckoutResultado() {
               {pedido.plan_nombre}
               {pedido.cantidad > 1 ? ` x${pedido.cantidad}` : ''}
             </p>
-            <p className="mt-2">Pagado hoy: {clp(pedido.monto_hoy)}</p>
-            {pedido.saldo > 0 && <p>Saldo contra entrega: {clp(pedido.saldo)}</p>}
+            {esSaldo ? (
+              <p className="mt-2">Saldo: {clp(pedido.saldo)}</p>
+            ) : (
+              <>
+                <p className="mt-2">Pagado hoy: {clp(pedido.monto_hoy)}</p>
+                {pedido.saldo > 0 && <p>Saldo contra entrega: {clp(pedido.saldo)}</p>}
+              </>
+            )}
           </div>
         )}
         <div className="flex flex-wrap justify-center gap-3">
-          {estado === 'rechazado' && (
+          {estado === 'rechazado' && !esSaldo && (
             <a href="/checkout" className="rounded-full bg-noche px-6 py-3.5 font-semibold text-arena hover:bg-terracota">
               Intentar de nuevo
             </a>

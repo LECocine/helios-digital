@@ -196,3 +196,112 @@ export function correoAdmin(p) {
   ].join('\n')
   return { asunto, html, text }
 }
+
+// ---------- Cobro del saldo (50% restante) ----------
+function detalleSaldo(p, pagado) {
+  return [
+    ['Pedido', p.id],
+    ['Producto', `${p.plan_nombre}${p.cantidad > 1 ? ` x${p.cantidad}` : ''}`],
+    ['Total del proyecto', `${clp(p.total)} IVA incluido`],
+    ['Ya pagado', clp(p.monto_hoy)],
+    pagado && p.saldo_payment_id && ['N° de pago Mercado Pago', p.saldo_payment_id],
+    [pagado ? 'Saldo pagado hoy' : 'Saldo a pagar', clp(p.saldo), true],
+  ]
+}
+
+// Link de pago del saldo, para el cliente
+export function correoSaldoLink(p) {
+  const nombre = p.nombre.split(' ')[0]
+  const asunto = `Saldo de ${clp(p.saldo)} · Pedido ${p.id} · ${NEGOCIO.marca}`
+  const html = marco({
+    titulo: asunto,
+    preheader: `Tu proyecto está listo. Paga el saldo de ${clp(p.saldo)} para coordinar la entrega.`,
+    contenido: `
+      <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;letter-spacing:-0.4px;color:${C.tierra};">${esc(nombre)}, tu proyecto está listo</h1>
+      <p style="margin:0 0 24px;color:${C.cafe};">Para coordinar la entrega, paga el saldo (el 50% restante). Es un pago seguro con Mercado Pago.</p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">${filas(detalleSaldo(p, false))}</table>
+
+      ${boton(p.saldo_link, `Pagar ${clp(p.saldo)} con Mercado Pago`)}
+
+      <p style="margin:24px 0 0;font-size:14px;color:${C.cafe};">Apenas se confirme el pago coordinamos la entrega. Si prefieres pagar por transferencia, <a href="${esc(wa(NEGOCIO.whatsapp, `Hola, soy ${p.nombre}. Quiero pagar el saldo del pedido ${p.id} por transferencia.`))}" style="color:${C.terracota};font-weight:700;">escríbenos por WhatsApp</a>.</p>`,
+  })
+  const text = [
+    `${nombre}, tu proyecto está listo.`,
+    '',
+    'Para coordinar la entrega, paga el saldo (el 50% restante):',
+    ...detalleSaldo(p, false).filter(Boolean).map(([k, v]) => `${k}: ${v}`),
+    '',
+    `Pagar con Mercado Pago: ${p.saldo_link}`,
+    '',
+    `¿Prefieres transferencia? WhatsApp ${NEGOCIO.whatsappVisible} o responde este correo.`,
+    '',
+    `${LEGAL.razonSocial} · RUT ${LEGAL.rut}`,
+  ].join('\n')
+  return { asunto, html, text }
+}
+
+// Confirmación del saldo, para el cliente
+export function correoSaldoPagado(p) {
+  const nombre = p.nombre.split(' ')[0]
+  const asunto = `Saldo pagado · Pedido ${p.id} · ${NEGOCIO.marca}`
+  const html = marco({
+    titulo: asunto,
+    preheader: `Recibimos el saldo de ${clp(p.saldo)}. Tu proyecto está pagado por completo.`,
+    contenido: `
+      <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;letter-spacing:-0.4px;color:${C.tierra};">¡Gracias, ${esc(nombre)}! Recibimos el saldo.</h1>
+      <p style="margin:0 0 24px;color:${C.cafe};">Tu proyecto quedó pagado por completo. Te contactamos por WhatsApp para coordinar la entrega.</p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">${filas(detalleSaldo(p, true))}</table>
+
+      ${boton(wa(NEGOCIO.whatsapp, `Hola, soy ${p.nombre}. Mi pedido es ${p.id}.`), 'Escribirnos por WhatsApp')}
+
+      <p style="margin:28px 0 0;font-size:13px;color:${C.cafe};">Por este pago emitiremos el documento tributario electrónico que corresponda. También puedes responder este correo.</p>`,
+  })
+  const text = [
+    `¡Gracias, ${nombre}! Recibimos el saldo.`,
+    '',
+    ...detalleSaldo(p, true).filter(Boolean).map(([k, v]) => `${k}: ${v}`),
+    '',
+    'Tu proyecto quedó pagado por completo. Te contactamos por WhatsApp para coordinar la entrega.',
+    `¿Dudas? WhatsApp ${NEGOCIO.whatsappVisible} o responde este correo.`,
+    '',
+    `${LEGAL.razonSocial} · RUT ${LEGAL.rut}`,
+  ].join('\n')
+  return { asunto, html, text }
+}
+
+// Aviso interno: el saldo se pagó
+export function correoAdminSaldo(p) {
+  const asunto = `Saldo pagado ${p.id}: ${clp(p.saldo)} (${p.plan_nombre})`
+  const cliente = [
+    ['Cliente', p.nombre],
+    ['Correo', p.correo],
+    ['Teléfono', p.telefono],
+    ['Empresa', p.empresa || '-'],
+    ['RUT', p.rut || '-'],
+  ]
+  const html = marco({
+    titulo: asunto,
+    preheader: `${p.nombre} pagó el saldo de ${clp(p.saldo)}. Ya puedes entregar.`,
+    contenido: `
+      <p style="margin:0 0 4px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${C.terracota};">Saldo pagado</p>
+      <h1 style="margin:0 0 20px;font-size:26px;line-height:1.2;letter-spacing:-0.4px;color:${C.tierra};">${esc(clp(p.saldo))} · ${esc(p.plan_nombre)}</h1>
+
+      <h2 style="margin:0 0 6px;font-size:16px;color:${C.tierra};">Cliente</h2>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">${filas(cliente)}</table>
+
+      <h2 style="margin:0 0 6px;font-size:16px;color:${C.tierra};">Pedido</h2>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">${filas(detalleSaldo(p, true))}</table>
+
+      ${boton(wa(telefonoWa(p.telefono), `Hola ${p.nombre.split(' ')[0]}, te escribo de ${NEGOCIO.marca}: recibimos el saldo de tu pedido ${p.id}. Coordinemos la entrega.`), 'Escribirle por WhatsApp')}`,
+  })
+  const text = [
+    `Saldo pagado ${p.id}: ${clp(p.saldo)} (${p.plan_nombre})`,
+    '',
+    ...cliente.map(([k, v]) => `${k}: ${v}`),
+    '',
+    ...detalleSaldo(p, true).filter(Boolean).map(([k, v]) => `${k}: ${v}`),
+  ].join('\n')
+  return { asunto, html, text }
+}
