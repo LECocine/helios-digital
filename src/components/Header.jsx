@@ -8,6 +8,7 @@ const LINKS = [
   { href: '#tarjeta', label: 'Tarjeta NFC' },
   { href: '#complementos', label: 'Complementos' },
   { href: '#planes', label: 'Planes' },
+  { href: '/checkout', label: 'Pagar en línea' },
 ]
 
 export default function Header() {

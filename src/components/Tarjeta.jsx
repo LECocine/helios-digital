@@ -31,7 +31,8 @@ export default function Tarjeta() {
             ))}
           </ul>
           <p className="rounded-2xl bg-white/5 px-5 py-4 text-[15px] text-[#D9C4AC]">
-            <strong className="text-sol">$65.000 por tarjeta.</strong> Si contratas tu landing page, te la descontamos.
+            <strong className="text-sol">$65.000 por tarjeta.</strong> La Landing Express ya incluye tu tarjeta NFC con tu
+            página personal de dueño.
           </p>
         </div>
 

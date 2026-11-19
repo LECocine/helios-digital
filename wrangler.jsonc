@@ -1,9 +1,30 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "helios-digital",
+  "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Las rutas /api/* las atiende el worker (checkout y aviso de Mercado Pago)
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "SITE_URL": "https://helioswebs.site",
+    "EMAIL_FROM": "Helios Digital <pagos@helioswebs.site>",
+    "EMAIL_ADMIN": "contacto@helioswebs.site"
+  },
+  // Secretos (no van aquí, se cargan con `npx wrangler secret put NOMBRE`):
+  //   MP_ACCESS_TOKEN   token de producción (o de prueba) de Mercado Pago
+  //   MP_WEBHOOK_SECRET clave secreta de webhooks de Mercado Pago
+  //   RESEND_API_KEY    API key de Resend para los correos
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "helios-pedidos",
+      // Reemplaza por el id que entrega: npx wrangler d1 create helios-pedidos
+      "database_id": "REEMPLAZAR_CON_ID_DE_D1"
+    }
+  ]
 }

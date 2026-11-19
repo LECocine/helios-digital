@@ -1,5 +1,5 @@
 import LegalLayout, { Identificacion } from '../components/LegalLayout'
-import { NEGOCIO, PLANES, clp, desgloseIVA } from '../data'
+import { NEGOCIO, PLANES, MANTENCION_ANUAL, clp, desgloseIVA } from '../data'
 
 export default function Terminos() {
   return (
@@ -45,7 +45,8 @@ export default function Terminos() {
           })}
         </ul>
         <p>
-          La Tarjeta Ejecutiva NFC se descuenta del valor de la Landing Express cuando se contratan juntas. Si
+          La Landing Express incluye una Tarjeta Ejecutiva NFC con la página personal del dueño. La mantención anual es
+          opcional y cuesta {clp(MANTENCION_ANUAL)} por año. Si
           actualizamos los precios publicados, el cambio no afecta las cotizaciones que ya aceptaste.
         </p>
       </section>
@@ -56,6 +57,11 @@ export default function Terminos() {
           Pagas el <strong>50% de anticipo</strong> para iniciar el proyecto y el <strong>50% restante contra entrega</strong>,
           cuando el sitio está listo para publicarse o las tarjetas están listas para retirar. El pago es único: no hay
           mensualidades de mantención.
+        </p>
+        <p>
+          Puedes pagar en línea en <a href="/checkout">helioswebs.site/checkout</a> a través de Mercado Pago (tarjetas de
+          débito, crédito y otros medios que Mercado Pago tenga disponibles), o por transferencia. Mercado Pago procesa el
+          pago; nosotros no vemos ni guardamos los datos de tu tarjeta. Al pagar te llega un correo de confirmación.
         </p>
       </section>
 

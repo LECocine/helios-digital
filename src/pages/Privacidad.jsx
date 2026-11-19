@@ -32,10 +32,15 @@ export default function Privacidad() {
             ejecutivos de tu empresa).
           </li>
           <li>Los datos necesarios para emitir facturas o boletas (razón social, RUT, giro y dirección).</li>
+          <li>
+            Los que ingresas al pagar en línea en nuestro checkout: nombre, correo, teléfono, empresa, RUT (opcional), el
+            plan que compras y el estado del pago. Los datos de tu tarjeta los ingresa y procesa Mercado Pago; nosotros
+            no los vemos ni los guardamos.
+          </li>
         </ul>
         <p>
-          Este sitio no tiene formularios que guarden datos en nuestros servidores, no usa cookies publicitarias ni
-          herramientas de seguimiento.
+          Los datos del checkout se guardan en una base de datos de Cloudflare para registrar tu pedido y enviarte la
+          confirmación. Este sitio no usa cookies publicitarias ni herramientas de seguimiento.
         </p>
       </section>
 
@@ -59,6 +64,8 @@ export default function Privacidad() {
           <li>Cloudflare: alojamiento del sitio y seguridad (registra datos técnicos como la dirección IP).</li>
           <li>Google Fonts: tipografías del sitio (tu navegador se conecta a servidores de Google).</li>
           <li>WhatsApp (Meta): cuando nos escribes por ese medio.</li>
+          <li>Mercado Pago: procesa los pagos en línea.</li>
+          <li>Resend: envía los correos de confirmación de pago.</li>
           <li>Proveedor de correo electrónico, para recibir y responder correos.</li>
         </ul>
         <p>Algunos de estos proveedores pueden almacenar datos fuera de Chile.</p>

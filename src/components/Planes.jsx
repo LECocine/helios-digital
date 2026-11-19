@@ -8,7 +8,7 @@ export default function Planes() {
       <SectionHeading
         eyebrow="Planes"
         titulo="Precios claros, sin sorpresas"
-        bajada="Todos los precios están en pesos chilenos e incluyen IVA. Pago único: 50% de anticipo y 50% cuando tu proyecto está listo. Sin mensualidades."
+        bajada="Todos los precios están en pesos chilenos e incluyen IVA. Pago único: 50% de anticipo y 50% cuando tu proyecto está listo. Dominio $0 y mantención anual opcional de $20.000. Paga en línea con Mercado Pago."
       />
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {PLANES.map((p) => {
@@ -46,18 +46,26 @@ export default function Planes() {
                   </li>
                 ))}
               </ul>
-              <a
-                href={waLink(p.mensaje)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`mt-auto rounded-full py-3.5 text-center font-semibold ${
-                  osc
-                    ? 'bg-sol text-noche hover:bg-sol-claro'
-                    : 'border-[1.5px] border-tierra text-tierra hover:bg-duna'
-                }`}
-              >
-                Cotizar por WhatsApp
-              </a>
+              <div className="mt-auto flex flex-col gap-2.5">
+                <a
+                  href={`/checkout?plan=${p.id}`}
+                  className={`rounded-full py-3.5 text-center font-semibold ${
+                    osc ? 'bg-sol text-noche hover:bg-sol-claro' : 'bg-noche text-arena hover:bg-terracota'
+                  }`}
+                >
+                  Contratar y pagar en línea
+                </a>
+                <a
+                  href={waLink(p.mensaje)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`rounded-full py-3 text-center font-semibold ${
+                    osc ? 'border-[1.5px] border-sol text-sol hover:bg-white/5' : 'border-[1.5px] border-tierra text-tierra hover:bg-duna'
+                  }`}
+                >
+                  Cotizar por WhatsApp
+                </a>
+              </div>
             </article>
           )
         })}

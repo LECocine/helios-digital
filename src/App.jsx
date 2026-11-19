@@ -12,6 +12,8 @@ import Footer from './components/Footer'
 import WhatsAppFlotante from './components/WhatsAppFlotante'
 import Terminos from './pages/Terminos'
 import Privacidad from './pages/Privacidad'
+import Checkout from './pages/Checkout'
+import CheckoutResultado from './pages/CheckoutResultado'
 
 function SaltarContenido() {
   return (
@@ -46,6 +48,8 @@ function Inicio() {
 const RUTAS = {
   '/terminos': Terminos,
   '/privacidad': Privacidad,
+  '/checkout': Checkout,
+  '/checkout/resultado': CheckoutResultado,
 }
 
 export default function App() {

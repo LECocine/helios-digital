@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claves locales de wrangler (no subir)
+.dev.vars
+.wrangler
